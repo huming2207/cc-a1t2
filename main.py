@@ -53,7 +53,13 @@ class StudentInfo(ndb.Model):
 
 
 def get_student(server):
-    sid = server.request.cookies.get('curr_user')
+    sid = server.request.cookies.get('user_id')
+    if sid is None:
+        server.response.set_status(403)
+        obj = {'message': 'You are not logged in!'}
+        server.response.write(json.dumps(obj))
+        return None
+
     student = StudentInfo.get_by_id(id=sid)
     server.response.headers['Content-Type'] = 'application/json'
 
@@ -132,7 +138,7 @@ class PasswordHandler(webapp2.RequestHandler):
         new_passwd = self.request.get('new_passwd')
 
         if str(student.password) == old_passwd:
-            student.password = new_passwd
+            student.password = int(new_passwd)
             self.response.delete_cookie(key='user_id')
             self.response.delete_cookie(key='user_name')
             self.redirect('/login')
@@ -142,8 +148,9 @@ class PasswordHandler(webapp2.RequestHandler):
             self.response.write(json.dumps(obj))
 
 
-
 app = webapp2.WSGIApplication([
     ('/', MainPage),
-    ('/login', LoginHandler)
+    ('/login', LoginHandler),
+    ('/name', NameHandler),
+    ('/password', PasswordHandler)
 ], debug=True)
