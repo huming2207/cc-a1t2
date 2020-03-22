@@ -15,6 +15,7 @@
 # limitations under the License.
 
 # [START imports]
+import json
 import os
 import urllib
 
@@ -25,7 +26,7 @@ import jinja2
 import webapp2
 
 JINJA_ENVIRONMENT = jinja2.Environment(
-    loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
+    loader=jinja2.FileSystemLoader(os.path.abspath('templates')),
     extensions=['jinja2.ext.autoescape'],
     autoescape=True)
 # [END imports]
@@ -47,26 +48,46 @@ def student_info_key(guestbook_name=DEFAULT_STUDENT_INFO_NAME):
 
 
 class StudentInfo(ndb.Model):
-    student_id = ndb.StringProperty(indexed=False)
     name = ndb.StringProperty(indexed=False)
     password = ndb.IntegerProperty()
 
 
-# [END greeting]
-
-
-# [START main_page]
 class MainPage(webapp2.RequestHandler):
 
     def get(self):
         student = StudentInfo(id="s3554025", name="Ming Hu", password=123456)
         student.put()
 
-# [END main_page]
+        student = StudentInfo(id="s35540251", name="Ming Hu A", password=234567)
+        student.put()
+
+        student = StudentInfo(id="s35540252", name="Ming Hu B", password=345678)
+        student.put()
+
+        template = JINJA_ENVIRONMENT.get_template('index.html')
+        self.response.write(template.render())
 
 
-# [START app]
+class LoginHandler(webapp2.RequestHandler):
+
+    def post(self):
+        sid = str(self.request.get('id'))
+        passwd = str(self.request.get('passwd'))
+
+        student = StudentInfo.get_by_id(id=sid)
+        self.response.headers['Content-Type'] = 'application/json'
+
+        if str(student.password) == passwd:
+            self.redirect('/')
+        else:
+            obj = {'error': 'Password is wrong'}
+            self.response.write(json.dumps(obj))
+
+
+
 app = webapp2.WSGIApplication([
     ('/', MainPage),
+    ('/login', LoginHandler)
 ], debug=True)
-# [END app]
+
+
