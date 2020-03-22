@@ -1,5 +1,5 @@
 indexes:
-- kind: Greeting
+- kind: StudentInfo
   ancestor: yes
   properties:
   - name: date
