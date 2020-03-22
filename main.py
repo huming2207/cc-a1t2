@@ -52,6 +52,20 @@ class StudentInfo(ndb.Model):
     password = ndb.IntegerProperty()
 
 
+def get_student(server):
+    sid = server.request.cookies.get('curr_user')
+    student = StudentInfo.get_by_id(id=sid)
+    server.response.headers['Content-Type'] = 'application/json'
+
+    if student is None:
+        server.response.set_status(403)
+        obj = {'message': 'You are not logged in!'}
+        server.response.write(json.dumps(obj))
+        return None
+    else:
+        return student
+
+
 class MainPage(webapp2.RequestHandler):
 
     def get(self):
@@ -77,10 +91,54 @@ class LoginHandler(webapp2.RequestHandler):
         student = StudentInfo.get_by_id(id=sid)
         self.response.headers['Content-Type'] = 'application/json'
 
-        if str(student.password) == passwd:
+        if student is None or str(student.password) == passwd:
+            self.response.set_cookie(key='user_id', value=sid)
+            self.response.set_cookie(key='user_name', value=student.name)
             self.redirect('/')
         else:
-            obj = {'error': 'Password is wrong'}
+            self.response.set_status(403)
+            obj = {'message': 'User id or password is invalid'}
+            self.response.write(json.dumps(obj))
+
+
+class NameHandler(webapp2.RequestHandler):
+
+    def post(self):
+        student = get_student(self)
+        if student is None:
+            return
+
+        new_name = self.request.get('name')
+        if len(new_name) < 1:
+            self.response.set_status(400)
+            obj = {'message': 'User name cannot be empty'}
+            self.response.write(json.dumps(obj))
+        else:
+            student.name = new_name
+            student.put()
+            self.response.set_status(200)
+            obj = {'message': 'Name changed.'}
+            self.response.write(json.dumps(obj))
+
+
+class PasswordHandler(webapp2.RequestHandler):
+
+    def post(self):
+        student = get_student(self)
+        if student is None:
+            return
+
+        old_passwd = self.request.get('old_passwd')
+        new_passwd = self.request.get('new_passwd')
+
+        if str(student.password) == old_passwd:
+            student.password = new_passwd
+            self.response.delete_cookie(key='user_id')
+            self.response.delete_cookie(key='user_name')
+            self.redirect('/login')
+        else:
+            self.response.set_status(403)
+            obj = {'message': 'Password is invalid or not logged in'}
             self.response.write(json.dumps(obj))
 
 
@@ -89,5 +147,3 @@ app = webapp2.WSGIApplication([
     ('/', MainPage),
     ('/login', LoginHandler)
 ], debug=True)
-
-
