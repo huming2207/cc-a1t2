@@ -55,7 +55,6 @@ class StudentInfo(ndb.Model):
 CURRENT_STUDENT = StudentInfo()
 
 
-
 class MainPage(webapp2.RequestHandler):
 
     def get(self):
@@ -98,7 +97,6 @@ class LoginHandler(webapp2.RequestHandler):
             CURRENT_STUDENT = student
             self.redirect('/')
         else:
-            CURRENT_STUDENT = StudentInfo()
             login_status = {
                 "login_state": False
             }
@@ -134,23 +132,28 @@ class NameHandler(webapp2.RequestHandler):
 
 class PasswordHandler(webapp2.RequestHandler):
 
+    def get(self):
+        template = JINJA_ENVIRONMENT.get_template('password.html')
+        self.response.write(template.render())
+
     def post(self):
         student = CURRENT_STUDENT
         if student is None:
             return
 
-        old_passwd = self.request.get('old_passwd')
-        new_passwd = self.request.get('new_passwd')
+        old_passwd = self.request.get('old-password')
+        new_passwd = self.request.get('new-password')
 
         if str(student.password) == old_passwd:
             student.password = int(new_passwd)
-            self.response.delete_cookie(key='user_id')
-            self.response.delete_cookie(key='user_name')
+            student.put()
             self.redirect('/login')
         else:
-            self.response.set_status(403)
-            obj = {'message': 'Password is invalid or not logged in'}
-            self.response.write(json.dumps(obj))
+            password_status = {
+                "invalid_password": True
+            }
+            template = JINJA_ENVIRONMENT.get_template('password.html')
+            self.response.write(template.render(password_status))
 
 
 app = webapp2.WSGIApplication([
