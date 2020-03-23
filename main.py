@@ -52,29 +52,14 @@ class StudentInfo(ndb.Model):
     password = ndb.IntegerProperty()
 
 
-def get_student(server):
-    sid = server.request.cookies.get('user_id')
-    if sid is None:
-        server.response.set_status(403)
-        obj = {'message': 'You are not logged in!'}
-        server.response.write(json.dumps(obj))
-        return None
+CURRENT_STUDENT = StudentInfo()
 
-    student = StudentInfo.get_by_id(id=sid)
-    server.response.headers['Content-Type'] = 'application/json'
-
-    if student is None:
-        server.response.set_status(403)
-        obj = {'message': 'You are not logged in!'}
-        server.response.write(json.dumps(obj))
-        return None
-    else:
-        return student
 
 
 class MainPage(webapp2.RequestHandler):
 
     def get(self):
+        global CURRENT_STUDENT
         student = StudentInfo(id="s3554025", name="Ming Hu", password=123456)
         student.put()
 
@@ -84,8 +69,13 @@ class MainPage(webapp2.RequestHandler):
         student = StudentInfo(id="s35540252", name="Ming Hu B", password=345678)
         student.put()
 
+        login_status = {
+            "student": CURRENT_STUDENT
+        }
+
+        print CURRENT_STUDENT
         template = JINJA_ENVIRONMENT.get_template('index.html')
-        self.response.write(template.render())
+        self.response.write(template.render(login_status))
 
 
 class LoginHandler(webapp2.RequestHandler):
@@ -98,14 +88,17 @@ class LoginHandler(webapp2.RequestHandler):
         self.response.write(template.render(login_status))
 
     def post(self):
+        global CURRENT_STUDENT
         sid = str(self.request.get('id'))
         passwd = str(self.request.get('passwd'))
 
         student = StudentInfo.get_by_id(id=sid)
 
         if student is None or str(student.password) == passwd:
+            CURRENT_STUDENT = student
             self.redirect('/')
         else:
+            CURRENT_STUDENT = StudentInfo()
             login_status = {
                 "login_state": False
             }
@@ -115,28 +108,34 @@ class LoginHandler(webapp2.RequestHandler):
 
 class NameHandler(webapp2.RequestHandler):
 
+    def get(self):
+        template = JINJA_ENVIRONMENT.get_template('name.html')
+        self.response.write(template.render())
+
     def post(self):
-        student = get_student(self)
+        global CURRENT_STUDENT
+        student = CURRENT_STUDENT
         if student is None:
             return
 
         new_name = self.request.get('name')
         if len(new_name) < 1:
-            self.response.set_status(400)
-            obj = {'message': 'User name cannot be empty'}
-            self.response.write(json.dumps(obj))
+            name_status = {
+                "invalid_name": True
+            }
+            template = JINJA_ENVIRONMENT.get_template('name.html')
+            self.response.write(template.render(name_status))
         else:
             student.name = new_name
             student.put()
-            self.response.set_status(200)
-            obj = {'message': 'Name changed.'}
-            self.response.write(json.dumps(obj))
+            CURRENT_STUDENT = student
+            self.redirect("/")
 
 
 class PasswordHandler(webapp2.RequestHandler):
 
     def post(self):
-        student = get_student(self)
+        student = CURRENT_STUDENT
         if student is None:
             return
 

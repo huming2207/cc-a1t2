@@ -5,6 +5,14 @@
     <title>Update name</title>
 </head>
 <body>
-
+<form method="post" action="/name">
+    <label for="id-input">New username: </label>
+    <input type="text" name="name" id="id-input">
+    <br>
+    <input type="submit" value="Change">
+    {% if invalid_name %}
+    <p><b>User name cannot be empty</b></p>
+    {% endif %}
+</form>
 </body>
 </html>
