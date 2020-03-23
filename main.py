@@ -90,21 +90,27 @@ class MainPage(webapp2.RequestHandler):
 
 class LoginHandler(webapp2.RequestHandler):
 
+    def get(self):
+        login_status = {
+            "login_state": True
+        }
+        template = JINJA_ENVIRONMENT.get_template('login.html')
+        self.response.write(template.render(login_status))
+
     def post(self):
         sid = str(self.request.get('id'))
         passwd = str(self.request.get('passwd'))
 
         student = StudentInfo.get_by_id(id=sid)
-        self.response.headers['Content-Type'] = 'application/json'
 
         if student is None or str(student.password) == passwd:
-            self.response.set_cookie(key='user_id', value=sid)
-            self.response.set_cookie(key='user_name', value=student.name)
             self.redirect('/')
         else:
-            self.response.set_status(403)
-            obj = {'message': 'User id or password is invalid'}
-            self.response.write(json.dumps(obj))
+            login_status = {
+                "login_state": False
+            }
+            template = JINJA_ENVIRONMENT.get_template('login.html')
+            self.response.write(template.render(login_status))
 
 
 class NameHandler(webapp2.RequestHandler):
