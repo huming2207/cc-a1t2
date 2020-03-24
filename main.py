@@ -57,6 +57,14 @@ class LoginHandler(webapp2.RequestHandler):
         sid = str(self.request.get('id'))
         passwd = str(self.request.get('passwd'))
 
+        if len(sid) < 1 or len(passwd) < 1:
+            login_status = {
+                "login_state": False
+            }
+            template = JINJA_ENVIRONMENT.get_template('login.html')
+            self.response.write(template.render(login_status))
+            return
+
         student = StudentInfo.get_by_id(id=sid)
 
         if student is None or str(student.password) == passwd:
